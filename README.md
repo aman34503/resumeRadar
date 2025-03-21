@@ -19,7 +19,6 @@
 ## 🛠️ **Tech Stack**
 ### 🎨 **Frontend**
 - React.js (Vite)  
-- Tailwind CSS  
 - Supabase Auth for Google Sign-In  
 - Axios for API integration  
 
