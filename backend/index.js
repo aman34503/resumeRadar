@@ -21,7 +21,7 @@ app.use(cors({
 
 // ✅ Supabase configuration
 const supabaseUrl = 'https://krqicljcoyxwkwdgfdpf.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtycWljbGpjb3l4d2t3ZGdmZHBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3NzkwMzgsImV4cCI6MjA1NzM1NTAzOH0.I7zbDEH8noQNnog07nxQx7OFzYzbBqBbO0Q_hLCFgCQ';
+const supabaseKey = process.env.SupabaseKey
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const HF_API_KEY = process.env.HF_API_KEY;
