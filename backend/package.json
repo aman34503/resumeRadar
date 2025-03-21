@@ -8,16 +8,21 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "@google/generative-ai": "^0.24.0",
     "@supabase/supabase-js": "^2.49.1",
     "axios": "^1.8.3",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-fileupload": "^1.5.1",
+    "multer": "^1.4.5-lts.2",
     "node-pdftotext": "^1.0.4",
+    "openai": "^4.89.0",
     "pdf-parse": "^1.1.1",
     "supabase": "^2.19.5",
-    "tesseract.js": "^6.0.0"
-  }
+    "tesseract.js": "^6.0.0",
+    "uuid": "^11.1.0"
+  },
+  "description": ""
 }
