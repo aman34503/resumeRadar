@@ -107,20 +107,14 @@ async function performOcr(pdfBuffer) {
   return text;
 }
 
-/**
- * Generates interview questions based on the resume text using Hugging Face.
- * @param {string} resumeText - The text extracted from the resume.
- * @returns {Promise<string[]>} - An array of interview questions.
- */
 async function generateInterviewQuestions(resumeText) {
   try {
     const prompt = `
-    You are an AI interview assistant. Generate 10 technical interview questions for the candidate based on the resume details provided below:
-    
-    Resume:
-    ${resumeText}
+Generate exactly 10 technical interview questions for the candidate based on the following resume details. 
+Do not include any introductions, comments, or additional text. Only output the questions in a numbered format.
 
-    Generate only the questions without additional comments or explanations.
+Resume:
+${resumeText}
     `;
 
     const response = await axios.post(
@@ -128,8 +122,8 @@ async function generateInterviewQuestions(resumeText) {
       {
         inputs: prompt,
         parameters: {
-          max_length: 500,
-          temperature: 0.7,
+          max_length: 500, // To limit response size
+          temperature: 0.7, // Maintain some variation
         },
       },
       {
@@ -139,23 +133,29 @@ async function generateInterviewQuestions(resumeText) {
         },
       }
     );
+    // ✅ Extract generated text from the response
+    const generatedText = response.data[0]?.generated_text?.trim() || '';
 
-    // Extract generated text from the response
-    const generatedText = response.data[0]?.generated_text || '';
+    // ✅ Split and clean up questions
+    const questions = generatedText
+      .split('\n')
+      .map((q) => q.trim())
+      .filter((q) => q.match(/^\d+\./)); // Keep only numbered questions
 
-    // Split questions if they are in list format
-const questions = generatedText
-  .split('\n')
-  .filter((q) => q.trim() !== '' && !q.includes('Resume:'));
+    // ✅ Return only the cleaned questions
+    if (questions.length === 0) {
+      throw new Error('No valid questions generated. Try refining the prompt or resume details.');
+    }
 
     return questions;
   } catch (error) {
-    console.error('Error generating interview questions:', error.response?.data || error.message);
+    console.error(
+      'Error generating interview questions:',
+      error.response?.data || error.message
+    );
     throw new Error('Failed to generate interview questions');
   }
 }
-
-
 // API Endpoint to handle resume and generate questions
 app.post('/generate-questions', async (req, res) => {
   const { resumeText } = req.body;
