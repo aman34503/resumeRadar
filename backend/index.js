@@ -148,7 +148,6 @@ app.post('/process-resume', async (req, res) => {
     const pdfBuffer = req.files.resume.data;
     const fileName = req.files.resume.name;
 
-    const fileUrl = await uploadToSupabase(pdfBuffer, fileName);
     let resumeText = await extractTextFromPdf(pdfBuffer);
 
     if (!resumeText || resumeText.trim() === '') {
