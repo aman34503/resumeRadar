@@ -1,0 +1,32 @@
+/* index.css */
+body {
+  background-color: #f8f9fa;
+  font-family: 'Arial', sans-serif;
+}
+
+.login-container {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar {
+  height: 100vh;
+  background-color: #343a40;
+  color: white;
+  padding-top: 20px;
+}
+
+.content {
+  padding: 20px;
+}
+
+.card {
+  width: 400px;
+  border-radius: 12px;
+}
+
+button {
+  margin-top: 10px;
+}
