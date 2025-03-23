@@ -4,63 +4,56 @@ const fileUpload = require('express-fileupload');
 const pdfParse = require('pdf-parse');
 const { createWorker } = require('tesseract.js');
 const { createClient } = require('@supabase/supabase-js');
-
 const axios = require('axios');
+const cors = require('cors');
+const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-app.use(express.json());
-app.use(fileUpload()); // To handle file uploads
 
-const cors = require('cors');
+// ✅ Middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(fileUpload({ limits: { fileSize: 10 * 1024 * 1024 } })); // 10MB limit
 
-app.use(cors({
-  origin: 'http://localhost:3000', // Allow your frontend
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type']
-}));
+// ✅ CORS Configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://your-domain.com', // Replace with your custom domain
+  'https://your-vercel-app.vercel.app',
+];
 
-// ✅ Supabase configuration
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+  })
+);
+
+// ✅ Supabase Configuration
 const supabaseUrl = 'https://krqicljcoyxwkwdgfdpf.supabase.co';
-const supabaseKey = process.env.SupabaseKey
+const supabaseKey = process.env.SupabaseKey;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// ✅ HuggingFace API Configuration
 const HF_API_KEY = process.env.HF_API_KEY;
-const MODEL_NAME = 'HuggingFaceH4/zephyr-7b-beta'; // Best for instruction tasks
-
-const { v4: uuidv4 } = require('uuid'); // Import UUID to generate unique names
+const MODEL_NAME = 'HuggingFaceH4/zephyr-7b-beta';
+const HF_API_URL = `https://api-inference.huggingface.co/models/${MODEL_NAME}`;
 
 /**
  * Uploads a file to Supabase storage and returns the file URL.
- * @param {Buffer} fileBuffer - The file data as a buffer.
- * @param {string} fileName - Name of the file to be uploaded.
- * @returns {Promise<string>} - The URL of the uploaded file.
  */
 async function uploadToSupabase(fileBuffer, fileName) {
   try {
-    // ✅ Check if the file already exists
-    const { data: existingFile, error: fetchError } = await supabase.storage
-      .from('resumes')
-      .list('uploads', { search: fileName });
-
-    if (fetchError) {
-      console.error('Error checking existing file:', fetchError.message);
-      throw new Error('Failed to check existing file in Supabase');
-    }
-
-    let finalFileName = fileName;
-
-    // ✅ If file already exists, generate a unique name
-    if (existingFile && existingFile.length > 0) {
-      const fileExt = fileName.split('.').pop(); // Get file extension
-      const fileBaseName = fileName.replace(`.${fileExt}`, ''); // Get name without extension
-
-      // Add a UUID or timestamp to avoid conflicts
-      finalFileName = `${fileBaseName}_${uuidv4()}.${fileExt}`;
-    }
-
-    // ✅ Upload the file with the new name (if needed)
+    const finalFileName = `${fileName.split('.')[0]}_${Date.now()}.${fileName.split('.').pop()}`;
     const { data, error } = await supabase.storage
-      .from('resumes') // 'resumes' is the bucket name
+      .from('resumes')
       .upload(`uploads/${finalFileName}`, fileBuffer, {
         contentType: 'application/pdf',
       });
@@ -70,7 +63,6 @@ async function uploadToSupabase(fileBuffer, fileName) {
       throw new Error('Failed to upload resume to Supabase');
     }
 
-    // ✅ Get the public URL of the uploaded file
     const { publicURL } = supabase.storage.from('resumes').getPublicUrl(data.path);
     return publicURL;
   } catch (error) {
@@ -79,11 +71,8 @@ async function uploadToSupabase(fileBuffer, fileName) {
   }
 }
 
-
 /**
  * Extracts text from a PDF file.
- * @param {Buffer} pdfBuffer - The PDF file as a buffer.
- * @returns {Promise<string>} - The extracted text.
  */
 async function extractTextFromPdf(pdfBuffer) {
   try {
@@ -96,36 +85,24 @@ async function extractTextFromPdf(pdfBuffer) {
 }
 
 /**
- * Performs OCR on a PDF file.
- * @param {Buffer} pdfBuffer - The PDF file as a buffer.
- * @returns {Promise<string>} - The extracted text using OCR.
+ * Performs OCR on a PDF file using Tesseract.js.
  */
 async function performOcr(pdfBuffer) {
-  const worker = await createWorker('eng'); // English language
+  const worker = await createWorker('eng');
   const { data: { text } } = await worker.recognize(pdfBuffer);
   await worker.terminate();
   return text;
 }
 
+/**
+ * Generates interview questions based on resume text.
+ */
 async function generateInterviewQuestions(resumeText) {
   try {
-    const prompt = `
-Generate exactly 10 technical interview questions for the candidate based on the following resume details. 
-Do not include any introductions, comments, or additional text. Only output the questions in a numbered format.
-
-Resume:
-${resumeText}
-    `;
-
+    const prompt = `Generate exactly 10 technical interview questions for the candidate based on the following resume details.\nResume:\n${resumeText}`;
     const response = await axios.post(
-      `https://api-inference.huggingface.co/models/${MODEL_NAME}`,
-      {
-        inputs: prompt,
-        parameters: {
-          max_length: 500, // To limit response size
-          temperature: 0.7, // Maintain some variation
-        },
-      },
+      HF_API_URL,
+      { inputs: prompt },
       {
         headers: {
           Authorization: `Bearer ${HF_API_KEY}`,
@@ -133,44 +110,27 @@ ${resumeText}
         },
       }
     );
-    // ✅ Extract generated text from the response
-    const generatedText = response.data[0]?.generated_text?.trim() || '';
 
-    // ✅ Split and clean up questions
+    if (response.status !== 200 || !response.data.length) {
+      throw new Error('No valid questions generated. Try refining the prompt or resume details.');
+    }
+
+    const generatedText = response.data[0]?.generated_text?.trim() || '';
     const questions = generatedText
       .split('\n')
       .map((q) => q.trim())
-      .filter((q) => q.match(/^\d+\./)); // Keep only numbered questions
+      .filter((q) => q.match(/^\d+\./));
 
-    // ✅ Return only the cleaned questions
     if (questions.length === 0) {
       throw new Error('No valid questions generated. Try refining the prompt or resume details.');
     }
 
     return questions;
   } catch (error) {
-    console.error(
-      'Error generating interview questions:',
-      error.response?.data || error.message
-    );
+    console.error('Error generating interview questions:', error.response?.data || error.message);
     throw new Error('Failed to generate interview questions');
   }
 }
-// API Endpoint to handle resume and generate questions
-app.post('/generate-questions', async (req, res) => {
-  const { resumeText } = req.body;
-
-  if (!resumeText) {
-    return res.status(400).json({ error: 'Resume text is required' });
-  }
-
-  try {
-    const questions = await generateInterviewQuestions(resumeText);
-    res.json({ questions });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
 /**
  * API endpoint to process a resume and generate interview questions.
@@ -180,35 +140,41 @@ app.post('/process-resume', async (req, res) => {
     return res.status(400).json({ error: 'No file uploaded' });
   }
 
+  const timeout = setTimeout(() => {
+    return res.status(408).json({ error: 'Request timed out' });
+  }, 30000); // 30 seconds timeout
+
   try {
     const pdfBuffer = req.files.resume.data;
     const fileName = req.files.resume.name;
 
-    // ✅ Step 1: Upload file to Supabase and get the URL
     const fileUrl = await uploadToSupabase(pdfBuffer, fileName);
-
-    // ✅ Step 2: Extract text from the PDF
     let resumeText = await extractTextFromPdf(pdfBuffer);
 
-    // ✅ Step 3: If no text found, perform OCR
     if (!resumeText || resumeText.trim() === '') {
       console.log('No text found in PDF. Using OCR...');
       resumeText = await performOcr(pdfBuffer);
     }
 
-    // ✅ Step 4: Generate interview questions using OpenAI GPT-3.5
     const questions = await generateInterviewQuestions(resumeText);
-
-    // ✅ Step 5: Return the generated questions and file URL
-    res.json({questions});
+    clearTimeout(timeout);
+    res.json({ questions });
   } catch (error) {
-    console.error('Error processing resume:', error);
+    clearTimeout(timeout);
     res.status(500).json({ error: error.message || 'Failed to process resume' });
   }
 });
 
+// ✅ Serve frontend files from build folder
+app.use(express.static(path.resolve(__dirname, '../frontend/build')));
+
+// ✅ Catch-all route to serve React frontend
+app.get('*', (req, res) => {
+  res.sendFile(path.resolve(__dirname, '../frontend/build/index.html'));
+});
+
 // ✅ Start the server
-const PORT = 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
 });
