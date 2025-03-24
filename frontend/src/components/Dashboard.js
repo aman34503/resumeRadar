@@ -43,7 +43,7 @@ const Dashboard = () => {
       const formData = new FormData();
       formData.append('resume', file);
 
-      const response = await axios.post('http://localhost:5000/process-resume', formData, {
+      const response = await axios.post(`${import.meta.env.BACKEND_URL}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
