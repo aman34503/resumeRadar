@@ -7,8 +7,6 @@ const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const cors = require('cors');
 const path = require('path');
-const { v4: uuidv4 } = require('uuid');
-
 const app = express();
 
 // ✅ Middleware
@@ -146,7 +144,6 @@ app.post('/process-resume', async (req, res) => {
 
   try {
     const pdfBuffer = req.files.resume.data;
-    const fileName = req.files.resume.name;
 
     let resumeText = await extractTextFromPdf(pdfBuffer);
 
@@ -162,14 +159,6 @@ app.post('/process-resume', async (req, res) => {
     clearTimeout(timeout);
     res.status(500).json({ error: error.message || 'Failed to process resume' });
   }
-});
-
-// ✅ Serve frontend files from build folder
-app.use(express.static(path.resolve(__dirname, '../frontend/build')));
-
-// ✅ Catch-all route to serve React frontend
-app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, '../frontend/build/index.html'));
 });
 
 // ✅ Start the server
