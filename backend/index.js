@@ -40,8 +40,8 @@ const supabaseKey = process.env.SupabaseKey;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ✅ HuggingFace API Configuration
-const HF_API_KEY = process.env.HF_API_KEY;
-const MODEL_NAME = 'HuggingFaceH4/zephyr-7b-beta';
+const HF_API_KEY = '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';
+const MODEL_NAME = 'mistralai/Mistral-7B-Instruct-v0.1';
 const HF_API_URL = `https://api-inference.huggingface.co/models/${MODEL_NAME}`;
 
 /**
@@ -97,7 +97,23 @@ async function performOcr(pdfBuffer) {
  */
 async function generateInterviewQuestions(resumeText) {
   try {
-    const prompt = `Generate exactly 10 technical interview questions for the candidate based on the following resume details.\nResume:\n${resumeText}`;
+    const MAX_RESUME_LENGTH = 5000;
+    const trimmedResumeText =
+      resumeText.length > MAX_RESUME_LENGTH
+        ? resumeText.slice(0, MAX_RESUME_LENGTH)
+        : resumeText;
+
+    const prompt = `
+Analyze the following resume and generate 10 relevant interview questions for a software developer.
+
+Resume:
+${trimmedResumeText}
+
+List the questions in a numbered format.
+`;
+
+   
+
     const response = await axios.post(
       HF_API_URL,
       { inputs: prompt },
@@ -109,26 +125,40 @@ async function generateInterviewQuestions(resumeText) {
       }
     );
 
-    if (response.status !== 200 || !response.data.length) {
-      throw new Error('No valid questions generated. Try refining the prompt or resume details.');
+    console.log('API Response:', response.data);
+
+    if (!response.data || response.data.length === 0) {
+      throw new Error(
+        'No valid questions generated. Try refining the prompt or resume details.'
+      );
     }
 
-    const generatedText = response.data[0]?.generated_text?.trim() || '';
+    const generatedText =
+      response.data[0]?.generated_text?.trim() || 'No questions generated.';
+    console.log('Generated Text:', generatedText);
+ 
     const questions = generatedText
       .split('\n')
       .map((q) => q.trim())
-      .filter((q) => q.match(/^\d+\./));
+      .filter((q) => q.match(/^\d+\./))
+      .slice(0, 10); // Only take the first 10 questions
 
     if (questions.length === 0) {
-      throw new Error('No valid questions generated. Try refining the prompt or resume details.');
+      throw new Error(
+        'No valid questions generated. Try refining the prompt or resume details.'
+      );
     }
 
     return questions;
   } catch (error) {
-    console.error('Error generating interview questions:', error.response?.data || error.message);
+    console.error(
+      'Error generating interview questions:',
+      error.response?.data || error.message
+    );
     throw new Error('Failed to generate interview questions');
   }
 }
+
 
 /**
  * API endpoint to process a resume and generate interview questions.
