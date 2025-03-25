@@ -40,7 +40,7 @@ const supabaseKey = process.env.SupabaseKey;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ✅ HuggingFace API Configuration
-const HF_API_KEY = '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';
+const HF_API_KEY = process.env.HF_API_KEY;
 const MODEL_NAME = 'mistralai/Mistral-7B-Instruct-v0.1';
 const HF_API_URL = `https://api-inference.huggingface.co/models/${MODEL_NAME}`;
 
