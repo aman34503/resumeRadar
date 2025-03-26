@@ -111,9 +111,6 @@ ${trimmedResumeText}
 
 List the questions in a numbered format.
 `;
-
-   
-
     const response = await axios.post(
       HF_API_URL,
       { inputs: prompt },
@@ -148,9 +145,9 @@ List the questions in a numbered format.
         'No valid questions generated. Try refining the prompt or resume details.'
       );
     }
-
     return questions;
-  } catch (error) {
+  } 
+  catch (error) {
     console.error(
       'Error generating interview questions:',
       error.response?.data || error.message
@@ -158,7 +155,6 @@ List the questions in a numbered format.
     throw new Error('Failed to generate interview questions');
   }
 }
-
 
 /**
  * API endpoint to process a resume and generate interview questions.
@@ -181,7 +177,6 @@ app.post('/process-resume', async (req, res) => {
       console.log('No text found in PDF. Using OCR...');
       resumeText = await performOcr(pdfBuffer);
     }
-
     const questions = await generateInterviewQuestions(resumeText);
     clearTimeout(timeout);
     res.json({ questions });
