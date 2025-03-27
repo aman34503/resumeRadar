@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import { Container, Row, Col, Button, Form, ListGroup, Spinner } from 'react-bootstrap';
+import { Container, Button, Form, Spinner } from 'react-bootstrap';
 import { jsPDF } from 'jspdf';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const Dashboard = () => {
   const [file, setFile] = useState(null);
   const [questions, setQuestions] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [fileUrl, setFileUrl] = useState('');
@@ -43,7 +44,12 @@ const Dashboard = () => {
       const formData = new FormData();
       formData.append('resume', file);
 
-  const response = await axios.post('http://localhost:5000/process-resume', formData, {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: `📄 Uploaded resume: ${file.name}` },
+      ]);
+
+      const response = await axios.post('http://localhost:5000/process-resume', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -51,6 +57,12 @@ const Dashboard = () => {
         const { questions, fileUrl } = response.data;
         setQuestions(questions);
         setFileUrl(fileUrl);
+
+        const formattedQuestions = questions.map((q, i) => `${i + 1}. ${q}`).join('\n\n');
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: formattedQuestions },
+        ]);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -76,45 +88,67 @@ const Dashboard = () => {
   };
 
   return (
-    <Container fluid>
-      <Row>
-        <Col md={3} className="sidebar bg-dark text-white p-4">
-          <h4>Welcome, {user?.email}</h4>
-          <Button variant="danger" onClick={handleLogout} className="mt-3">
-            Logout
-          </Button>
-        </Col>
-        <Col md={9} className="content p-5">
-          <h2>Upload Your Resume</h2>
+    <div className="dashboard-container">
+      {/* Header Section */}
+      <div className="header-container">
+        <div className="greeting-text">
+          👋 Hello, {user?.email || 'User'}
+        </div>
+        <Button variant="outline-dark" onClick={handleLogout} className="btn-logout">
+          Logout
+        </Button>
+      </div>
+
+      {/* Main Content */}
+      <Container className="d-flex justify-content-center align-items-center flex-grow-1">
+        <div className="chat-container">
+          <div className="chat-header mb-4 text-center">
+            <h5 className="text-light">🚀 Upload Your Resume to Get Interview Questions</h5>
+            <p className="text-secondary">Powered by AI to generate relevant interview questions based on your skills.</p>
+          </div>
+
+          {/* Chat-like messages */}
+          <div className="chat-box">
+            {messages.map((msg, index) => (
+              <div
+                key={index}
+                className={`message ${msg.role === 'user' ? 'user' : 'assistant'}`}
+              >
+                {msg.content.split('\n').map((line, idx) => (
+                  <div key={idx}>{line}</div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Upload Resume Section */}
           <Form.Group className="mb-3">
-            <Form.Control type="file" accept=".pdf" onChange={handleFileChange} />
+            <Form.Control
+              type="file"
+              accept=".pdf"
+              onChange={handleFileChange}
+              className="custom-file-input"
+            />
           </Form.Group>
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button onClick={handleSubmit} disabled={isLoading} variant="primary">
             {isLoading ? <Spinner animation="border" size="sm" /> : 'Generate Questions'}
           </Button>
 
           {fileUrl && (
-            <p className="mt-3">
-              📄 File Uploaded: <a href={fileUrl} target="_blank" rel="noopener noreferrer">View Uploaded Resume</a>
+            <p className="mt-3 text-light">
+              📄 File Uploaded: <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-info">View Uploaded Resume</a>
             </p>
           )}
 
+          {/* Download PDF Button */}
           {questions.length > 0 && (
-            <div className="mt-5">
-              <h3>Generated Interview Questions:</h3>
-              <ListGroup>
-                {questions.map((question, index) => (
-                  <ListGroup.Item key={index}>{question}</ListGroup.Item>
-                ))}
-              </ListGroup>
-              <Button onClick={downloadPdf} className="mt-3">
-                Download Questions as PDF
-              </Button>
-            </div>
+            <Button onClick={downloadPdf} className="mt-3 w-100 btn-download">
+              Download Questions as PDF
+            </Button>
           )}
-        </Col>
-      </Row>
-    </Container>
+        </div>
+      </Container>
+    </div>
   );
 };
 

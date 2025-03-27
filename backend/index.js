@@ -60,7 +60,6 @@ async function uploadToSupabase(fileBuffer, fileName) {
       console.error('Error uploading file to Supabase:', error.message);
       throw new Error('Failed to upload resume to Supabase');
     }
-
     const { publicURL } = supabase.storage.from('resumes').getPublicUrl(data.path);
     return publicURL;
   } catch (error) {
