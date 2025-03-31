@@ -18,6 +18,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://your-domain.com', // Replace with your custom domain
   'https://resume-radar-2mpc.vercel.app/',
+  'https://resume-radar-tau.vercel.app//process-resume/api',
 ];
 
 app.use(
