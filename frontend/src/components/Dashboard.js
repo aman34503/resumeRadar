@@ -9,7 +9,7 @@ import '../styles/index.css';
 // ✅ Environment Variables
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_KEY;
-const apiUrl = process.env.REACT_APP_API_URL || 'https://resume-radar-tau.vercel.app';
+const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const Dashboard = () => {
@@ -51,8 +51,7 @@ const Dashboard = () => {
         { role: 'user', content: `📄 Uploaded resume: ${file.name}` },
       ]);
 
-      // ✅ Fix Double Slashes Issue
-      const response = await axios.post(`${apiUrl}/process-resume`.replace(/\/+/, '/'), formData, {
+      const response = await axios.post(`${apiUrl}/process-resume`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
