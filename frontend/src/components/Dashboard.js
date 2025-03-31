@@ -50,7 +50,7 @@ const Dashboard = () => {
         { role: 'user', content: `📄 Uploaded resume: ${file.name}` },
       ]);
 
-      const response = await axios.post(`${apiUrl}/process-resume`, formData, {
+      const response = await axios.post(`${apiUrl}/process-resume/api`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
