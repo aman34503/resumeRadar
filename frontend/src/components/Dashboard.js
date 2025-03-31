@@ -8,6 +8,7 @@ import '../styles/index.css';
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_KEY;
+const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const Dashboard = () => {
@@ -49,7 +50,7 @@ const Dashboard = () => {
         { role: 'user', content: `📄 Uploaded resume: ${file.name}` },
       ]);
 
-      const response = await axios.post('http://localhost:5000/process-resume', formData, {
+      const response = await axios.post(`${apiUrl}/process-resume`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
