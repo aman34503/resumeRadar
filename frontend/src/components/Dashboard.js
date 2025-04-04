@@ -9,7 +9,7 @@ import '../styles/index.css';
 // ✅ Environment Variables
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_KEY;
-const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const apiUrl = process.env.REACT_APP_API_URL || '/api';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const Dashboard = () => {
@@ -52,8 +52,8 @@ const Dashboard = () => {
       ]);
 
       const response = await axios.post(`${apiUrl}/process-resume`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+  headers: { 'Content-Type': 'multipart/form-data' }
+});
 
       if (response.data) {
         const { questions, fileUrl } = response.data;
