@@ -16,13 +16,14 @@ app.use(fileUpload({ limits: { fileSize: 10 * 1024 * 1024 } })); // 10MB limit
 // ✅ CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://your-domain.com', // Replace with your custom domain
   'https://resume-radar-2mpc.vercel.app',
-  ];
+  'https://resume-radar-tau.vercel.app', // ✅ only the origin, not path
+];
 
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like curl or Postman)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -33,6 +34,7 @@ app.use(
     allowedHeaders: ['Content-Type'],
   })
 );
+
 
 // ✅ Supabase Configuration
 const supabaseUrl = 'https://krqicljcoyxwkwdgfdpf.supabase.co';
