@@ -186,6 +186,9 @@ app.post('/process-resume', async (req, res) => {
     res.status(500).json({ error: error.message || 'Failed to process resume' });
   }
 });
+app.get('/health', (req, res) => {
+  res.send('Backend is up!');
+});
 
 // ✅ Start the server
 const PORT = process.env.PORT || 5000;

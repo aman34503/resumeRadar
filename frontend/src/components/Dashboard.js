@@ -54,6 +54,8 @@ const Dashboard = () => {
       const response = await axios.post(`${apiUrl}/process-resume`, formData, {
   headers: { 'Content-Type': 'multipart/form-data' }
 });
+console.log("📡 Sending request to:", `${apiUrl}/process-resume`);
+
 
       if (response.data) {
         const { questions, fileUrl } = response.data;
